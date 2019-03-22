@@ -1,0 +1,52 @@
+#include <avr/io.h>
+#include <avr/interrupt.h>
+ 
+#define F_CPU 16000000UL
+#include <util/delay.h>
+#define DataPort	PORTC	// PORTC dataport olarak tanımlanıyor. 
+#define DataDDR		DDRC   // Port adlarına böyle isim verebiliriz.
+ #define ms 100 //delay fonksiyonları için
+//INT1 için kesme fonksiyonu. Kesme yürütüldüğünde işletilecek kodlar.
+ISR(INT1_vect)
+{
+	unsigned char i, temp;
+ 
+	_delay_ms(ms); // Düğme arkını engellemek için bekleme fonksiyonu.
+ 
+	temp = DataPort;	// DataPort'un değerini ver. 
+ 
+	/* Bu döngü dataporttaki ledleri beş kere yakar.*/
+	for(i = 0; i<5; i++)
+	{
+		DataPort = 0x00;
+		_delay_ms(ms);	// ms ms bekle
+		DataPort = 0xFF;
+		_delay_ms(ms);	// ms ms bekle
+	}
+ 
+	DataPort = temp;	//Dataporta eski değerini ver. (0)
+}	
+ 
+int main(void)
+{
+	DDRD = 1<<PD3;		// ,INT1 kesmesi için kullanılan PD2 ayağı giriş
+	PORTD = 1<<PD3;		// Dahili pull-up dirençlerini etkinleştir.
+	DataDDR = 0xFF;		// Dataportu çıkış yap
+	EIMSK = 1<<INT1;		// INT1 kesmesini etkinleştir
+	EICRA = 0<<ISC01 | 1<<ISC00;	// her hangi bir deyişiklikde INT1 kesmesi yürüyecek
+	sei();				//Genel kesmeleri etkinleştir.
+
+    while(1)
+    {
+			for ( int a=0 ; a<6;a++)
+			{
+				DataPort |= _BV(a);
+				_delay_ms(ms);
+			}
+			for ( int b=0 ; b<6;b++)
+			{
+				DataPort &= ~(_BV(b));
+				_delay_ms(ms);
+			}
+    }
+}
